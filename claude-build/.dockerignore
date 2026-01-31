@@ -1,0 +1,11 @@
+# Ensure critical files are included in build context
+!init-firewall.sh
+!Dockerfile
+!compose.yaml
+
+# Exclude common unnecessary files
+.git
+.gitignore
+*.md
+.env
+node_modules

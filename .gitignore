@@ -1,0 +1,29 @@
+# Environment and secrets
+.env
+.env.local
+*.key
+*.pem
+
+# Docker volumes and data
+**/workspace/
+**/config/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak

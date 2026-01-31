@@ -1,0 +1,83 @@
+# Custom Claude Code Base Image
+# Based on Node.js 22 Debian Bookworm with Anthropic-recommended tools
+
+FROM node:22-bookworm
+
+# Metadata
+LABEL maintainer="richtt02"
+LABEL description="Debian-based Claude Code container with Anthropic-recommended tools and firewall support"
+LABEL version="1.0"
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    SHELL=/bin/bash
+
+# Update package lists and install base packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Core Development Tools (from Anthropic's devcontainer)
+    git \
+    gnupg2 \
+    ca-certificates \
+    openssh-client \
+    # Firewall & Networking
+    iptables \
+    ipset \
+    iproute2 \
+    dnsutils \
+    # JSON & Data Processing
+    jq \
+    curl \
+    wget \
+    # Shell & Editor Enhancements
+    zsh \
+    vim \
+    nano \
+    less \
+    # Utilities
+    gosu \
+    procps \
+    man-db \
+    unzip \
+    tree \
+    htop \
+    # IP aggregation tool (for firewall optimization)
+    aggregate \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install GitHub CLI (gh) - official installation method
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+    dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+    tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y gh && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install fzf (fuzzy finder) - from official repo
+RUN git clone --depth 1 https://github.com/junegunn/fzf.git /root/.fzf && \
+    /root/.fzf/install --all && \
+    ln -s /root/.fzf/bin/fzf /usr/local/bin/fzf
+
+# Install git-delta (syntax-highlighting pager) - v0.18.2 as recommended by Anthropic
+RUN DELTA_VERSION="0.18.2" && \
+    ARCH=$(dpkg --print-architecture) && \
+    curl -fsSL "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/git-delta_${DELTA_VERSION}_${ARCH}.deb" \
+    -o /tmp/git-delta.deb && \
+    dpkg -i /tmp/git-delta.deb && \
+    rm /tmp/git-delta.deb
+
+# Install Claude Code CLI globally
+RUN npm install -g @anthropic-ai/claude-code
+
+# Configure zsh with fzf integration (lightweight, no oh-my-zsh for smaller image)
+RUN echo 'export PATH="/root/.fzf/bin:$PATH"' >> /root/.zshrc && \
+    echo '[ -f /root/.fzf.zsh ] && source /root/.fzf.zsh' >> /root/.zshrc
+
+# Create workspace and config directories
+RUN mkdir -p /workspace /claude && chmod 755 /workspace /claude
+
+WORKDIR /workspace
+
+# Default CMD (will be overridden by derived image)
+CMD ["bash"]

@@ -1,0 +1,28 @@
+# Claude Code with Firewall for TrueNAS Scale (Dockge)
+# Access via: docker exec -it claude-code bash
+#
+# Files required in the same directory as this compose.yaml:
+# - Dockerfile
+# - entrypoint.sh
+# - init-firewall.sh
+
+services:
+  claude-code:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: claude-code
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - CLAUDE_CONFIG_DIR=/claude
+      - TERM=xterm-256color
+    volumes:
+      - /mnt/tank1/configs/claude/claude-code/workspace:/workspace:rw
+      - /mnt/tank1/configs/claude/claude-code/config:/claude:rw
+    working_dir: /workspace
+networks: {}
