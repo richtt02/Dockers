@@ -43,8 +43,8 @@ docker exec claude-code curl -sf --connect-timeout 3 https://example.com
 # Test firewall (should SUCCEED)
 docker exec claude-code curl -sf --connect-timeout 3 https://api.github.com
 
-# Access web terminal
-# Browser: http://<truenas-ip>:7681
+# Access container
+docker exec -it claude-code bash
 ```
 
 ## All-in-One Command
@@ -55,7 +55,7 @@ chmod +x *.sh && \
 docker build -f Dockerfile.base -t richtt02/claude-base:latest . && \
 docker compose build && \
 docker compose up -d && \
-echo "✅ Deployment complete! Access web terminal at http://<truenas-ip>:7681"
+echo "✅ Deployment complete! Access via: docker exec -it claude-code bash"
 ```
 
 ## Common Commands
@@ -150,11 +150,8 @@ chown -R 1000:1000 /mnt/tank1/configs/claude/claude-code/config
 # Check container is running
 docker ps | grep claude-code
 
-# Check port mapping
-docker port claude-code
-
-# Check TrueNAS firewall (if applicable)
-# Ensure port 7681 is allowed
+# Check container is accessible
+docker exec -it claude-code bash
 ```
 
 ## File Structure
@@ -180,7 +177,7 @@ docker port claude-code
 ## Success Indicators
 
 ✅ Container running: `docker ps | grep claude-code`
-✅ Web terminal: `http://<truenas-ip>:7681` accessible
+✅ Shell access: `docker exec -it claude-code bash` works
 ✅ Firewall blocking: `curl https://example.com` fails
 ✅ Firewall allowing: `curl https://api.github.com` succeeds
 ✅ Claude CLI: `claude --version` shows version

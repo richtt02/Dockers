@@ -13,7 +13,7 @@ A hardened Docker container for running [Claude Code](https://claude.ai/code) on
 - 🐧 **Debian Bookworm base** - Official Anthropic-recommended OS with Node.js 22 LTS
 - 🔐 **Two-stage initialization** - Root firewall setup → unprivileged user execution
 - 🎯 **Dynamic UID/GID mapping** - Seamless TrueNAS filesystem permission integration
-- 🌐 **Web-based terminal** - Browser access via ttyd on port 7681
+- 💻 **Interactive shell access** - Direct access via `docker exec` for development
 - 🛠️ **Complete development environment** - Git, GitHub CLI, fzf, git-delta, and more
 
 ## 🚀 Quick Start
@@ -47,9 +47,7 @@ docker compose logs -f
 
 ### Access the Container
 
-**Web Terminal:** Open your browser to `http://<your-ip>:7681`
-
-**Shell Access:**
+**Interactive Shell:**
 ```bash
 docker exec -it claude-code bash
 ```
@@ -116,7 +114,7 @@ docker compose build && docker compose up -d
 │ Stage 2: User Execution (Unprivileged)                      │
 │ • Dynamic UID/GID mapping                                    │
 │ • Privilege drop via gosu                                    │
-│ • Launch ttyd + Claude Code                                  │
+│ • Keep container running for interactive shell access       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -144,7 +142,6 @@ Built on `node:22-bookworm` with:
 - **CLI Tools:** Claude Code, GitHub CLI (gh)
 - **Security:** iptables, ipset, firewall utilities
 - **Development:** git, vim, nano, zsh, fzf, git-delta
-- **Web Terminal:** ttyd v1.7.7
 - **Utilities:** jq, curl, gosu, procps
 
 **Image Size:** ~355MB (base: ~350MB)
@@ -224,8 +221,8 @@ docker compose logs -f
 
 **Common causes:**
 - Missing NET_ADMIN/NET_RAW capabilities
-- Port 7681 already in use
 - Volume mount permissions issues
+- Firewall initialization failed
 
 ### Firewall Not Working
 
@@ -246,16 +243,6 @@ docker exec claude-code id
 # Then restart container
 docker compose restart
 ```
-
-### Web Terminal Not Accessible
-
-**Check container status:**
-```bash
-docker ps | grep claude-code
-docker port claude-code
-```
-
-**Verify firewall allows port 7681** (if applicable)
 
 ## 🔐 Security Considerations
 
@@ -291,7 +278,6 @@ This project is provided as-is for personal and commercial use.
 ## 🙏 Acknowledgments
 
 - **Anthropic** - For Claude Code and the official devcontainer firewall implementation
-- **ttyd** - For the excellent web terminal solution
 - **Docker** - For containerization technology
 
 ## 📞 Support

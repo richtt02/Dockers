@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-Docker containerization stack for running Claude Code on TrueNAS Scale with security-focused egress filtering. Combines Debian Bookworm base (richtt02/claude-base with Node.js 22), ttyd web terminal for browser access, and whitelist-based DEFAULT DENY firewall.
+Docker containerization stack for running Claude Code on TrueNAS Scale with security-focused egress filtering. Combines Debian Bookworm base (richtt02/claude-base with Node.js 22) and whitelist-based DEFAULT DENY firewall.
 
 **Key Components:**
 - Base: richtt02/claude-base (Node.js 22 Debian Bookworm + Claude CLI + Anthropic Tools)
-- Web Terminal: ttyd on port 7681
+- Access: Shell access via `docker exec -it claude-code bash`
 - Security: Whitelist-based egress firewall (DEFAULT DENY)
 - Integration: Dynamic UID/GID mapping for TrueNAS filesystem permissions
 - Initialization: Two-stage (firewall setup as root → privilege drop to user)
@@ -66,8 +66,10 @@ docker compose build && docker compose restart
 docker compose build && docker compose up -d
 ```
 
-**Access Web Terminal:**
-Navigate to `http://<truenas-ip>:7681` in your browser.
+**Access Container:**
+```bash
+docker exec -it claude-code bash
+```
 
 ## Custom Base Image
 
@@ -79,7 +81,6 @@ This project uses a custom Debian-based image (`richtt02/claude-base:latest`) fo
 - Claude Code CLI (@anthropic-ai/claude-code)
 - **Firewall tools:** iptables, ipset, dnsutils, iproute2
 - **Developer tools:** git, gh (GitHub CLI), vim, nano, zsh, fzf, git-delta
-- **Web terminal:** ttyd v1.7.7
 - **Utilities:** jq, curl, gosu, procps, aggregate, man-db
 
 **Why Debian over Alpine:**
@@ -170,7 +171,7 @@ The container uses a two-stage initialization to handle privileged firewall setu
 - Detects/creates user based on USER_UID/USER_GID environment variables (entrypoint.sh:42-50)
 - Sets ownership on /claude directory (non-recursive to preserve credential permissions)
 - Drops privileges via `gosu` to unprivileged user (entrypoint.sh:72)
-- Launches ttyd and Claude Code as non-root
+- Keeps container running for interactive shell access as non-root
 
 **Critical Note:** Firewall cannot be initialized in a separate container because iptables rules are network namespace-specific. Running as sidecar would create isolated rulesets.
 
@@ -228,10 +229,10 @@ environment:
 
 **How It Works (entrypoint.sh:42-50):**
 1. Check if UID already exists in container
-2. If not, create user with `adduser -D -u $USER_UID`
+2. If not, create user with `useradd -u $USER_UID`
 3. If exists, reuse existing username
 4. Set ownership of /claude directory (non-recursive)
-5. Drop privileges via `gosu` to execute ttyd/claude as that user
+5. Drop privileges via `gosu` to execute as that user
 
 **Special Case (entrypoint.sh:19-22):**
 If USER_UID=0, bypasses user creation and runs as root (not recommended for production).
@@ -252,15 +253,14 @@ If USER_UID=0, bypasses user creation and runs as root (not recommended for prod
 ## Critical Files with Line References
 
 **Dockerfile.base:**
-- Lines 1-15: Debian Bookworm + Node.js 22 base with environment setup
-- Lines 16-43: Install core packages (git, firewall tools, shells, utilities)
-- Lines 45-52: Install GitHub CLI (gh) via official method
-- Lines 54-57: Install fzf (fuzzy finder) from official repo
-- Lines 59-65: Install git-delta v0.18.2 (syntax-highlighting pager)
-- Lines 67-72: Install ttyd v1.7.7 (web terminal)
-- Line 75: Install Claude Code CLI globally via npm
-- Lines 77-79: Configure zsh with fzf integration
-- Lines 81-82: Create workspace and config directories
+- Lines 1-13: Debian Bookworm + Node.js 22 base with environment setup
+- Lines 15-45: Install core packages (git, firewall tools, shells, utilities)
+- Lines 47-55: Install GitHub CLI (gh) via official method
+- Lines 57-60: Install fzf (fuzzy finder) from official repo
+- Lines 62-68: Install git-delta v0.18.2 (syntax-highlighting pager)
+- Lines 70-71: Install Claude Code CLI globally via npm
+- Lines 73-75: Configure zsh with fzf integration
+- Lines 77-78: Create workspace and config directories
 
 **Dockerfile:**
 - Line 4: FROM richtt02/claude-base:latest (custom base image)
@@ -283,8 +283,8 @@ If USER_UID=0, bypasses user creation and runs as root (not recommended for prod
 - Lines 163-178: Verification tests (example.com blocked, api.github.com allowed)
 
 **compose.yaml:**
-- Lines 16-18: Required capabilities (NET_ADMIN, NET_RAW) for firewall setup
-- Lines 19-20: Port mapping (7681 for ttyd web terminal)
+- Lines 18-20: Required capabilities (NET_ADMIN, NET_RAW) for firewall setup
+- Lines 21-23: Environment variables (CLAUDE_CONFIG_DIR, TERM)
 - Lines 24-26: Volume mounts (/workspace for projects, /claude for config)
 
 ## TrueNAS-Specific Configuration
@@ -377,8 +377,8 @@ docker exec claude-code claude --version
 # 5. UID/GID mapping is correct
 docker exec claude-code id
 
-# 6. Web terminal is accessible
-# Open browser: http://<truenas-ip>:7681
+# 6. Interactive shell access works
+docker exec -it claude-code bash
 ```
 
 **Success Indicators:**
@@ -387,7 +387,7 @@ docker exec claude-code id
 - ✅ Firewall allows api.github.com (curl succeeds)
 - ✅ Claude CLI shows version number
 - ✅ Container user has correct UID/GID
-- ✅ Web terminal accessible in browser
+- ✅ Interactive shell access works
 - ✅ Files created in /workspace have correct ownership
 
 ## Common Issues
@@ -435,16 +435,6 @@ cap_add:
   - NET_RAW
 ```
 Some container platforms (e.g., Kubernetes) may restrict capabilities. Verify platform supports these capabilities.
-
-### Web Terminal Connection Refused
-
-**Symptom:** Browser cannot connect to http://<truenas-ip>:7681
-
-**Causes & Solutions:**
-1. Container not running: `docker ps | grep claude-code`
-2. Port mapping incorrect: Verify compose.yaml:19-20 maps 7681:7681
-3. Firewall on TrueNAS host: Check TrueNAS firewall allows port 7681
-4. ttyd not started: `docker logs claude-code` should show "ttyd" in CMD execution
 
 ### Firewall Verification Fails During Build
 
