@@ -8,6 +8,7 @@ This guide walks you through deploying the Claude Code Docker container on TrueN
 ## Prerequisites
 ✅ Docker installed on TrueNAS
 ✅ SSH access to TrueNAS
+✅ TrueNAS user/group configured (see [TrueNAS Setup Guide](TRUENAS_SETUP.md))
 ✅ Files transferred to TrueNAS
 
 ## 5-Step Claude Code Deployment on TrueNAS

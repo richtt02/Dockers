@@ -291,14 +291,16 @@ If USER_UID=0, bypasses user creation and runs as root (not recommended for prod
 
 ### Creating TrueNAS User
 
-On TrueNAS host shell:
-```bash
-# Create user with specific UID/GID (example: 4000:4000)
-pw useradd claude -u 4000 -g 4000 -d /nonexistent -s /usr/sbin/nologin -c "Claude Code Container"
+**IMPORTANT:** See [TRUENAS_SETUP.md](TRUENAS_SETUP.md) for comprehensive setup guide including security considerations.
 
-# Or using FreeBSD's adduser for existing GID
+Quick reference:
+```bash
+# Create group and user with UID/GID 4000
 pw groupadd claude -g 4000
-pw useradd claude -u 4000 -g claude
+pw useradd claude -u 4000 -g claude -m -s /bin/bash -c "Claude Code Container Manager"
+
+# Setup sudo permissions (NEVER use docker group)
+# See TRUENAS_SETUP.md for complete sudoers configuration
 ```
 
 ### Setting UID/GID in compose.yaml

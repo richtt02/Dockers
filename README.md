@@ -152,6 +152,7 @@ Built on `node:22-bookworm` with:
 
 | Document | Description |
 |----------|-------------|
+| [TRUENAS_SETUP.md](claude-build/TRUENAS_SETUP.md) | TrueNAS user/group setup with security analysis |
 | [CLAUDE.md](claude-build/CLAUDE.md) | Comprehensive technical documentation with line-by-line references |
 | [QUICK_START.md](claude-build/QUICK_START.md) | Step-by-step deployment guide for TrueNAS Scale |
 

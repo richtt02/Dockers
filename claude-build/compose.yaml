@@ -18,9 +18,13 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    # Security Note: Set USER_UID and USER_GID to match your TrueNAS user
+    # For user creation and permission setup, see TRUENAS_SETUP.md
     environment:
       - CLAUDE_CONFIG_DIR=/claude
       - TERM=xterm-256color
+      - USER_UID=4000  # Match TrueNAS user UID
+      - USER_GID=4000  # Match TrueNAS user GID
     volumes:
       - /mnt/tank1/configs/claude/claude-code/workspace:/workspace:rw
       - /mnt/tank1/configs/claude/claude-code/config:/claude:rw
