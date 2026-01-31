@@ -90,8 +90,7 @@ id claude
 2. Click the **Edit** (pencil icon) button on the `claude` user
 3. Scroll down to the **Sudo** section
 4. Configure the following settings:
-   - Enable **Sudo Commands** checkbox
-   - In the **Allowed sudo commands** field, copy each command and paste one at a time:
+   - In the **Allowed sudo commands with no password** field, copy each command and paste one at a time:
 
      ```
      /bin/docker compose up *
@@ -130,7 +129,6 @@ id claude
      /bin/docker images
      ```
 
-   - Enable **Sudo Commands No Password** checkbox for passwordless execution
 5. Click **Save**
 
 **Understanding the command whitelist:**
