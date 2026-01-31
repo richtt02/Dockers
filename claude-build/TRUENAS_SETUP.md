@@ -91,23 +91,44 @@ id claude
 3. Scroll down to the **Sudo** section
 4. Configure the following settings:
    - Enable **Sudo Commands** checkbox
-   - In the **Allowed sudo commands** field, enter (one command per line):
+   - In the **Allowed sudo commands** field, copy each command and paste one at a time:
+
      ```
      /bin/docker compose up *
+     ```
+     ```
      /bin/docker compose down *
+     ```
+     ```
      /bin/docker compose build *
+     ```
+     ```
      /bin/docker compose restart *
+     ```
+     ```
      /bin/docker compose logs *
+     ```
+     ```
      /bin/docker compose pull *
+     ```
+     ```
      /bin/docker compose ps
+     ```
+     ```
      /bin/docker exec *
+     ```
+     ```
      /bin/docker ps
+     ```
+     ```
      /bin/docker logs *
+     ```
+     ```
      /bin/docker build *
+     ```
+     ```
      /bin/docker images
      ```
-
-   > **Tip:** For easy copy-paste, open [sudo-commands.txt](sudo-commands.txt) and copy the entire contents. On GitHub, click "Raw" to get plain text that preserves line breaks.
 
    - Enable **Sudo Commands No Password** checkbox for passwordless execution
 5. Click **Save**
