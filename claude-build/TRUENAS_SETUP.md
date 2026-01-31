@@ -106,6 +106,9 @@ id claude
      /bin/docker build *
      /bin/docker images
      ```
+
+   > **Tip:** For easy copy-paste, open [sudo-commands.txt](sudo-commands.txt) and copy the entire contents. On GitHub, click "Raw" to get plain text that preserves line breaks.
+
    - Enable **Sudo Commands No Password** checkbox for passwordless execution
 5. Click **Save**
 
