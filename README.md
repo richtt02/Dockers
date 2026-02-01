@@ -242,3 +242,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues:** [GitHub Issues](https://github.com/richtt02/claude-truenas/issues)
 - **Documentation:** See [CLAUDE.md](claude-build/CLAUDE.md) for detailed technical docs
+
+## Verify <meta name="google-site-verification" content="Bsq3Vq61GF81FbVMQoMRI7oaKV2hPAJsdpzZkcWVGu0" />
