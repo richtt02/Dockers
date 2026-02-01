@@ -60,8 +60,10 @@ RUN git clone --depth 1 --branch v0.57.0 https://github.com/junegunn/fzf.git /ro
     ln -s /root/.fzf/bin/fzf /usr/local/bin/fzf
 
 # Install git-delta (syntax-highlighting pager) - v0.18.2 as recommended by Anthropic
-# Security: Downloaded over HTTPS from official GitHub release; verified as valid .deb
-# Note: delta project doesn't publish checksums; consider using Debian package for higher assurance
+# Security: Downloaded over HTTPS from official GitHub release
+# - Pinned to specific version for reproducibility
+# - Verified as valid .deb package before installation
+# - Upstream doesn't publish checksums; for higher assurance, audit the release
 RUN DELTA_VERSION="0.18.2" && \
     ARCH=$(dpkg --print-architecture) && \
     curl -fsSL "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/git-delta_${DELTA_VERSION}_${ARCH}.deb" \
@@ -74,8 +76,17 @@ RUN DELTA_VERSION="0.18.2" && \
 RUN npm install -g @anthropic-ai/claude-code@2.1.29
 
 # Install code-server (VS Code in browser) - pinned version for reproducibility
-# Security: Downloaded over HTTPS from official code-server release
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version=4.96.4
+# Security: Downloaded directly from GitHub releases (no pipe-to-shell)
+# - Pinned to specific version for reproducibility
+# - Verified as valid .deb package before installation
+# - Upstream doesn't publish checksums; for higher assurance, audit the release
+RUN CODE_SERVER_VERSION="4.96.4" && \
+    ARCH=$(dpkg --print-architecture) && \
+    curl -fsSL "https://github.com/coder/code-server/releases/download/v${CODE_SERVER_VERSION}/code-server_${CODE_SERVER_VERSION}_${ARCH}.deb" \
+    -o /tmp/code-server.deb && \
+    dpkg-deb --info /tmp/code-server.deb >/dev/null 2>&1 || (echo "ERROR: Invalid .deb package" && exit 1) && \
+    dpkg -i /tmp/code-server.deb && \
+    rm /tmp/code-server.deb
 
 # Create code-server config directory structure
 RUN mkdir -p /home/claude/.config/code-server
