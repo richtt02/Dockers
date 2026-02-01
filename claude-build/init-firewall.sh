@@ -149,17 +149,13 @@ if [ -n "$HOST_IP" ]; then
     echo "Allowing local network: $HOST_NETWORK"
     iptables -A INPUT -s "$HOST_NETWORK" -j ACCEPT
     iptables -A OUTPUT -d "$HOST_NETWORK" -j ACCEPT
-    # Allow inbound to code-server (port 8443) from local network only
-    # Authentication is handled by code-server's PASSWORD
-    echo "Allowing code-server (port 8443) from local network"
-    iptables -A INPUT -p tcp --dport 8443 -s "$HOST_NETWORK" -j ACCEPT
-else
-    # Fallback: If no local network detected, allow code-server from Docker networks
-    echo "WARNING: Could not detect local network, allowing code-server from common Docker ranges"
-    iptables -A INPUT -p tcp --dport 8443 -s 172.16.0.0/12 -j ACCEPT
-    iptables -A INPUT -p tcp --dport 8443 -s 10.0.0.0/8 -j ACCEPT
-    iptables -A INPUT -p tcp --dport 8443 -s 192.168.0.0/16 -j ACCEPT
 fi
+
+# Allow inbound to code-server (port 8443) from any IP
+# Security: code-server requires PASSWORD authentication
+# External access is controlled by TrueNAS/router firewall
+echo "Allowing code-server (port 8443)"
+iptables -A INPUT -p tcp --dport 8443 -j ACCEPT
 
 # --- 10. Apply default DROP policy ---
 echo "Applying DROP policies..."

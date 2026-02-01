@@ -2,6 +2,8 @@
 
 Production-ready Docker container for running [Claude Code](https://claude.ai/code) on TrueNAS Scale with whitelist-based egress firewall security.
 
+![Claude Code running in container](docs/images/claude_truenas.png)
+
 ## Features
 
 - **Integrated VS Code (code-server)** - Browser-based IDE at `http://<host>:8443`

@@ -159,6 +159,10 @@ id claude
 
 5. Click **Save**
 
+**Example Configuration:**
+
+![TrueNAS User Settings](../docs/images/user_settings.png)
+
 **Understanding the command whitelist:**
 
 | Command | Wildcard | Effect |
