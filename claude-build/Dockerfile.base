@@ -60,15 +60,18 @@ RUN git clone --depth 1 --branch v0.57.0 https://github.com/junegunn/fzf.git /ro
     ln -s /root/.fzf/bin/fzf /usr/local/bin/fzf
 
 # Install git-delta (syntax-highlighting pager) - v0.18.2 as recommended by Anthropic
+# Security: Downloaded over HTTPS from official GitHub release; verified as valid .deb
+# Note: delta project doesn't publish checksums; consider using Debian package for higher assurance
 RUN DELTA_VERSION="0.18.2" && \
     ARCH=$(dpkg --print-architecture) && \
     curl -fsSL "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/git-delta_${DELTA_VERSION}_${ARCH}.deb" \
     -o /tmp/git-delta.deb && \
+    dpkg-deb --info /tmp/git-delta.deb >/dev/null 2>&1 || (echo "ERROR: Invalid .deb package" && exit 1) && \
     dpkg -i /tmp/git-delta.deb && \
     rm /tmp/git-delta.deb
 
-# Install Claude Code CLI globally
-RUN npm install -g @anthropic-ai/claude-code
+# Install Claude Code CLI globally (pinned version for reproducibility)
+RUN npm install -g @anthropic-ai/claude-code@2.1.29
 
 # Configure zsh with fzf integration (lightweight, no oh-my-zsh for smaller image)
 RUN echo 'export PATH="/root/.fzf/bin:$PATH"' >> /root/.zshrc && \

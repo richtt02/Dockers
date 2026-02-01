@@ -11,7 +11,7 @@
 
 services:
   code-server:
-    image: lscr.io/linuxserver/code-server:latest
+    image: lscr.io/linuxserver/code-server:4.96.4
     container_name: code-server
     environment:
       - PUID=${USER_UID}
@@ -36,6 +36,8 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    security_opt:
+      - no-new-privileges:true
     # Security Note: Set USER_UID and USER_GID to match your TrueNAS user
     # For user creation and permission setup, see TRUENAS_SETUP.md
     environment:

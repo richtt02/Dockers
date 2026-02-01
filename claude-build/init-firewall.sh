@@ -5,7 +5,7 @@
 # Adapted from Anthropic's official devcontainer firewall:
 # https://github.com/anthropics/claude-code/.devcontainer/init-firewall.sh
 #
-# Modified for Alpine Linux (uses 'dig' instead of requiring 'aggregate')
+# Modified for Debian Bookworm (uses 'dig' for DNS resolution)
 #
 # This script implements a whitelist-based egress firewall:
 # - Default DENY all outbound connections
@@ -103,6 +103,11 @@ fi
 # - sentry.io: error reporting
 # - statsig.anthropic.com: feature flags
 # - statsig.com: feature flags CDN
+#
+# SECURITY NOTE: DNS IPs are resolved ONCE at container startup and cached.
+# If a domain's IP changes after startup, the firewall rules won't update.
+# This is a known limitation. For high-security environments, consider using
+# hardcoded IPs or implementing periodic DNS refresh via cron.
 
 ALLOWED_DOMAINS="
 api.anthropic.com
@@ -132,6 +137,9 @@ ipset swap allowed-domains-tmp allowed-domains
 ipset destroy allowed-domains-tmp 2>/dev/null || true
 
 # --- 9. Detect and allow host/local network ---
+# SECURITY NOTE: This assumes a /24 network which may be too broad or too narrow
+# for your environment. For cloud VPCs or custom networks, adjust the CIDR mask.
+# To use a different mask, modify the sed pattern below (e.g., .0/16 for larger networks)
 HOST_IP=$(ip route 2>/dev/null | grep default | awk '{print $3}' | head -1)
 if [ -n "$HOST_IP" ]; then
     HOST_NETWORK=$(echo "$HOST_IP" | sed 's/\.[0-9]*$/.0\/24/')
