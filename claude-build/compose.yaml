@@ -5,6 +5,10 @@
 # - Dockerfile
 # - entrypoint.sh
 # - init-firewall.sh
+#
+# Volume paths can be customized via environment variables:
+#   export CLAUDE_WORKSPACE_PATH=/your/path/to/workspace
+#   export CLAUDE_CONFIG_PATH=/your/path/to/config
 
 services:
   claude-code:
@@ -26,7 +30,23 @@ services:
       - USER_UID=4000  # Match TrueNAS user UID
       - USER_GID=4000  # Match TrueNAS user GID
     volumes:
-      - /mnt/tank1/configs/claude/claude-code/workspace:/workspace:rw
-      - /mnt/tank1/configs/claude/claude-code/config:/claude:rw
+      - ${CLAUDE_WORKSPACE_PATH:-/mnt/tank1/configs/claude/claude-code/workspace}:/workspace:rw
+      - ${CLAUDE_CONFIG_PATH:-/mnt/tank1/configs/claude/claude-code/config}:/claude:rw
     working_dir: /workspace
+    # Resource limits to prevent runaway processes
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    # Health check to verify container is responsive
+    healthcheck:
+      test: ["CMD", "claude", "--version"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 networks: {}

@@ -9,3 +9,20 @@
 *.md
 .env
 node_modules
+
+# Security: Exclude sensitive files and directories
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.aws
+.ssh
+.config
+.npmrc
+*secret*
+*credential*
+*password*
+*token*
+.DS_Store
+Thumbs.db

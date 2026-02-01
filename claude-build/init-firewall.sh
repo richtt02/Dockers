@@ -55,7 +55,7 @@ if [ -n "$DOCKER_DNS_RULES" ]; then
     iptables -t nat -N DOCKER_OUTPUT 2>/dev/null || true
     iptables -t nat -N DOCKER_POSTROUTING 2>/dev/null || true
     echo "$DOCKER_DNS_RULES" | while read -r rule; do
-        iptables -t nat $rule 2>/dev/null || true
+        iptables -t nat "$rule" 2>/dev/null || true
     done
 fi
 
@@ -156,7 +156,17 @@ iptables -A OUTPUT -m set --match-set allowed-domains dst -j ACCEPT
 # --- 13. Explicit reject for better debugging ---
 iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
 
-# --- 14. Verification ---
+# --- 14. IPv6 Firewall (DEFAULT DENY) ---
+# Block all IPv6 traffic to prevent bypassing IPv4 firewall rules
+echo "Setting up IPv6 firewall (DEFAULT DENY)..."
+ip6tables -P INPUT DROP 2>/dev/null || true
+ip6tables -P OUTPUT DROP 2>/dev/null || true
+ip6tables -P FORWARD DROP 2>/dev/null || true
+# Allow IPv6 loopback
+ip6tables -A INPUT -i lo -j ACCEPT 2>/dev/null || true
+ip6tables -A OUTPUT -o lo -j ACCEPT 2>/dev/null || true
+
+# --- 15. Verification ---
 echo ""
 echo "=== Verifying Firewall ==="
 

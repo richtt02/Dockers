@@ -20,6 +20,7 @@ USER_GID=${USER_GID:-4000}
 
 # If running as root (UID 0), stay as root
 if [ "$USER_UID" -eq 0 ]; then
+    echo "WARNING: Running as root (USER_UID=0). Not recommended for production." >&2
     exec "$@"
 fi
 
