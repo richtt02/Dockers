@@ -259,7 +259,7 @@ All outbound traffic not explicitly whitelisted is REJECTED with icmp-admin-proh
 Enables seamless file permission integration with TrueNAS host filesystem:
 
 **Default Behavior:**
-- Defaults to UID=1000, GID=1000 if USER_UID/USER_GID not set (entrypoint.sh:15-17)
+- Defaults to UID=4000, GID=4000 if USER_UID/USER_GID not set (entrypoint.sh:22-23)
 - Creates `claude` user/group with specified IDs
 
 **TrueNAS Integration:**

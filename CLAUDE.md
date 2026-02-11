@@ -4,140 +4,99 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This repository contains Docker containerization projects. Currently includes:
+Docker container for running Claude Code on TrueNAS Scale with integrated VS Code (code-server) and whitelist-based egress firewall. All source files are in `claude-build/`.
 
-- **claude-build/**: Docker containerization stack for running Claude Code on TrueNAS Scale with security-focused egress filtering
+**Always read `claude-build/CLAUDE.md` for technical deep-dive with line-by-line file references, troubleshooting, and deployment verification.**
 
-## Project: claude-build
+## Build & Run
 
-A production-ready Docker container for Claude Code with integrated VS Code (code-server) and whitelist-based egress firewall, designed for TrueNAS Scale deployment.
-
-### Build Commands
+All commands run from `claude-build/`:
 
 ```bash
-# Navigate to project directory
 cd claude-build
 
-# Build the derived image (base image pulled automatically from Docker Hub)
-docker compose build
-
-# Start container
+# First-time setup
+cp .env.example .env   # Configure USER_UID, paths, SECURE_PASSWORD (all required)
+docker compose build   # Base image pulled automatically from Docker Hub
 docker compose up -d
 
-# View logs
-docker compose logs -f
-```
+# Rebuild after script/Dockerfile changes
+docker compose build && docker compose up -d
 
-> **Note:** The base image `richtt02/claude-base:latest` is automatically pulled from Docker Hub.
-> To build it locally instead (for auditing or customization), run:
-> `docker build -f Dockerfile.base -t richtt02/claude-base:latest .`
+# Rebuild base image locally (for Dockerfile.base changes)
+docker build -f Dockerfile.base -t richtt02/claude-base:1.1 .
+docker compose build --no-cache && docker compose restart
 
-### Common Operations
-
-```bash
-# Container lifecycle
-docker compose up -d              # Start
-docker compose down               # Stop
-docker compose restart            # Restart
-docker compose logs -f            # View logs
-
-# Rebuild after changes
-docker compose build              # Rebuild derived image only
-docker compose build --no-cache   # Force complete rebuild
-
-# Update base image (pull latest from Docker Hub)
-docker pull richtt02/claude-base:latest
-docker compose build --no-cache
-docker compose restart
-
-# Or build base image locally (for customization)
-docker build -f Dockerfile.base -t richtt02/claude-base:latest .
-docker compose build --no-cache
-docker compose restart
-
-# Testing firewall rules (inside container)
+# Verify firewall
 docker exec claude-code curl -sf --connect-timeout 3 https://example.com      # Should FAIL
 docker exec claude-code curl -sf --connect-timeout 3 https://api.github.com   # Should SUCCEED
-
-# Interactive shell access
-docker exec -it claude-code bash
 ```
 
-### Architecture Overview
+## Architecture
 
-**Two-Stage Initialization Pattern:**
-1. Stage 1 (Root): Firewall setup using iptables/ipset with NET_ADMIN/NET_RAW capabilities
-2. Stage 2 (User): Dynamic UID/GID mapping, privilege drop via gosu, launch Claude Code
+**Two-image build:**
+- `Dockerfile.base` → `richtt02/claude-base:1.1` (Debian Bookworm Slim + Node.js 25 + Claude CLI + code-server + tools). Published to Docker Hub; only rebuild locally when changing base packages.
+- `Dockerfile` → derived image. Copies `entrypoint.sh` and `init-firewall.sh` into the base. This is what `docker compose build` builds.
 
-**Whitelist-Based Egress Firewall:**
-- DEFAULT DENY policy for all outbound traffic
-- Whitelisted domains: Claude API, npm registry, GitHub, Sentry, Statsig, Open VSX
-- DNS resolution converts domains to IPs stored in ipset
-- Local network auto-detected and allowed
-- Port 8443 inbound allowed for VS Code web UI
+**Two-stage initialization (`entrypoint.sh`):**
+1. **Root stage:** Runs `init-firewall.sh` (iptables/ipset DEFAULT DENY firewall). Failure is fatal — container refuses to start unprotected.
+2. **User stage:** Creates/maps user to `USER_UID:USER_GID` (default 4000:4000), sets `/claude` ownership (non-recursive to preserve credential permissions), starts code-server in background, drops privileges via `gosu`.
 
-**Key Files:**
-- `Dockerfile.base`: Custom Debian Bookworm Slim base with Node.js 25 + Claude CLI + code-server + tools
-- `Dockerfile`: Derived image that adds entrypoint and firewall scripts
-- `entrypoint.sh`: Two-stage initialization (firewall → user mapping → code-server → privilege drop)
-- `init-firewall.sh`: Egress firewall setup adapted from Anthropic's devcontainer
-- `compose.yaml`: Docker Compose configuration with NET_ADMIN/NET_RAW capabilities
+**Why single container:** iptables rules are network-namespace-specific. A sidecar container would have its own isolated ruleset and wouldn't protect Claude Code.
 
-### Adding Whitelisted Domains
+## Key Files (claude-build/)
 
-Edit `init-firewall.sh:107-114` and add domain to `ALLOWED_DOMAINS`:
-```bash
-ALLOWED_DOMAINS="
-api.anthropic.com
-registry.npmjs.org
-your-new-domain.com
-"
-```
-Then rebuild: `docker compose build && docker compose up -d`
+| File | Purpose |
+|------|---------|
+| `Dockerfile.base` | Base image: Debian packages, Node.js, Claude CLI, code-server, gh, fzf, git-delta |
+| `Dockerfile` | Derived image: copies scripts, fixes CRLF line endings, verifies executability |
+| `entrypoint.sh` | Init orchestrator: firewall → UID/GID mapping → code-server → privilege drop |
+| `init-firewall.sh` | Egress firewall: DNS resolution, ipset whitelist, GitHub IP ranges, DEFAULT DROP |
+| `compose.yaml` | Container config: NET_ADMIN/NET_RAW caps, volume mounts, env vars, health check, resource limits |
+| `.env.example` | Required env vars template (no hardcoded defaults in compose.yaml) |
 
-### UID/GID Mapping for TrueNAS
+## Common Modifications
 
-**Required:** Configure in `.env` file (copy from `.env.example`):
-```bash
-cp .env.example .env
-nano .env  # Replace all <"..."> placeholders
-```
+**Add a whitelisted domain:** Edit `init-firewall.sh` `ALLOWED_DOMAINS` list (line ~113), then `docker compose build && docker compose up -d`.
 
-Example configuration:
-```env
-USER_UID=4000
-USER_GID=4000
-CLAUDE_WORKSPACE_PATH=/mnt/tank1/configs/claude/claude-code/workspace
-CLAUDE_CONFIG_PATH=/mnt/tank1/configs/claude/claude-code/config
-CODE_SERVER_CONFIG_PATH=/mnt/tank1/configs/claude/code-server
-SECURE_PASSWORD=your-password
-```
+**Change base image packages:** Edit `Dockerfile.base`, rebuild base: `docker build -f Dockerfile.base -t richtt02/claude-base:1.1 .`, then `docker compose build --no-cache`.
 
-All variables are required (no hardcoded defaults). This ensures files created in mounted volumes have correct ownership on the host filesystem.
+**Update Claude CLI version:** Change the version in `Dockerfile.base` (`npm install -g @anthropic-ai/claude-code@<version>`), rebuild base image.
 
-### Volume Structure
+**Update code-server version:** Change `CODE_SERVER_VERSION` in `Dockerfile.base`, rebuild base image.
 
-- `/workspace` - Working directory for projects (mounted from host)
-- `/claude` - Configuration and credentials (CLAUDE_CONFIG_DIR, mounted from host)
-- `/home/claude/.config/code-server` - VS Code settings and extensions
+**Adjust UID/GID:** Edit `.env` file (`USER_UID`, `USER_GID`), then `docker compose restart`.
 
-### Access
+**Modify entrypoint or firewall logic:** Edit `entrypoint.sh` or `init-firewall.sh`, then `docker compose build && docker compose up -d`. If editing on Windows, the Dockerfile automatically converts CRLF→LF.
 
-- **VS Code Web UI:** `http://<host>:8443` (login with SECURE_PASSWORD)
-- **Interactive Shell:** `docker exec -it claude-code bash`
-- **Claude in VS Code:** Open terminal in VS Code and run `claude`
+## Firewall Domain Whitelist
 
-### Security Notes
+Defined in `init-firewall.sh`. DNS resolved once at startup and cached in ipset.
 
-- Firewall must run in same container (network namespace-specific)
-- NET_ADMIN and NET_RAW capabilities required for iptables operations
-- Runs as unprivileged user after firewall setup (gosu privilege drop)
-- Credential files in /claude preserve their original permissions
-- Use sudo whitelist for docker commands, NEVER add users to docker group (root-equivalent access)
+- `api.anthropic.com` — Claude API
+- `registry.npmjs.org` — npm packages
+- `sentry.io`, `o1137031.ingest.sentry.io` — error reporting
+- `statsig.anthropic.com`, `statsig.com` — feature flags
+- `open-vsx.org`, `www.open-vsx.org` — VS Code extensions
+- GitHub IPs — fetched dynamically from `api.github.com/meta` (with hardcoded fallback)
+- DNS (UDP 53), SSH (TCP 22), loopback, local network (/24 auto-detected) — always allowed
 
-### Detailed Documentation
+## Volume Mounts
 
-| Document | Description |
-|----------|-------------|
-| [claude-build/CLAUDE.md](claude-build/CLAUDE.md) | Technical deep-dive: line-by-line file references, architecture details, troubleshooting, deployment verification |
-| [claude-build/TRUENAS_SETUP.md](claude-build/TRUENAS_SETUP.md) | TrueNAS user/group setup: sudo whitelist configuration via GUI, UID/GID mapping, security best practices |
+| Container Path | Purpose |
+|---------------|---------|
+| `/workspace` | Working directory for projects |
+| `/claude` | Claude config and credentials (CLAUDE_CONFIG_DIR) |
+| `/home/claude/.config/code-server` | VS Code settings and extensions |
+
+## Access
+
+- **VS Code Web UI:** `http://<host>:8443` (password from `SECURE_PASSWORD` in `.env`)
+- **Shell:** `docker exec -it claude-code bash`
+- **Claude CLI:** Open terminal in VS Code and run `claude`
+
+## Additional Documentation
+
+- `claude-build/CLAUDE.md` — Technical deep-dive with line references, troubleshooting, deployment verification
+- `claude-build/TRUENAS_SETUP.md` — TrueNAS user/group creation, sudo whitelist configuration
+- `claude-build/QUICK_START.md` — Step-by-step deployment guide
